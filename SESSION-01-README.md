@@ -479,9 +479,7 @@ output "node_exporter_url" {
 }
 
 #### 3b. Deploy the infrastructure
-# First create the private and public key with this command(this is because this key referenced in your terraform config file)
-ssh-keygen -t ed25519 -C "canonical-lab-key" -f ~/.ssh/canonical_lab_key
-```bash
+
 # Initialize Terraform — downloads the AWS provider plugin
 terraform init
 
