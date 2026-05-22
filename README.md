@@ -1,5 +1,5 @@
 # Cloud Field Engineer: 2-Month Lab-Based Program
-### Built for Nkiruka Judith Obilor | Target Role: Cloud Field Engineer 
+### Built for Nkiruka Judith Obilor | Target Role: Cloud Solutions Architect | Cloud Field Engineer
 
 ## Program Philosophy
 
