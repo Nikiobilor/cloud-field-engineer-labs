@@ -1,0 +1,107 @@
+# .github/workflows/deploy-session3.yml
+#
+# This workflow deploys all Session 3 configuration files to the EC2 instance
+# whenever changes are pushed to main that affect the session-03 directory.
+
+name: Deploy Session 3 — systemd Resilience Config
+
+on:
+  push:
+    branches:
+      - main
+    # Only run this workflow if files in these paths changed.
+    # Prevents unnecessary deployments when other sessions are updated.
+    paths:
+      - 'session-03-systemd-resilience/**'
+      - '.github/workflows/deploy-session3.yml'
+
+jobs:
+  deploy:
+    name: Deploy config to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository code onto the Actions runner.
+      # Without this, the runner has no access to our config files.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Load the SSH private key into the runner's ssh-agent.
+      # The ssh-agent holds the key in memory so subsequent SSH and SCP
+      # commands can authenticate without manually specifying the key file.
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      # Step 3: Copy config files from the runner to the server.
+      # SCP (Secure Copy Protocol) transfers files over SSH.
+      # -o StrictHostKeyChecking=no: accept the server's host key without prompting.
+      # We copy to /tmp/ first because we need sudo to write to /etc/ and /usr/local/.
+      - name: Copy config files to EC2
+        run: |
+          scp -o StrictHostKeyChecking=no \
+            session-03-systemd-resilience/infra/systemd/myapp.service \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/myapp.service
+
+          scp -o StrictHostKeyChecking=no \
+            session-03-systemd-resilience/infra/logrotate/myapp \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/logrotate-myapp
+
+          scp -o StrictHostKeyChecking=no \
+            session-03-systemd-resilience/infra/rsyslog/49-myapp.conf \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/49-myapp.conf
+
+          scp -o StrictHostKeyChecking=no \
+            session-03-systemd-resilience/scripts/myapp-alert.sh \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/myapp-alert.sh
+
+      # Step 4: SSH into the server and apply all configuration.
+      - name: Apply configuration on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e  # Exit immediately if any command fails
+
+            # ── systemd unit ──────────────────────────────────────────
+            sudo cp /tmp/myapp.service /etc/systemd/system/myapp.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable myapp.service
+            sudo systemctl restart myapp.service
+
+            # ── logrotate ─────────────────────────────────────────────
+            sudo cp /tmp/logrotate-myapp /etc/logrotate.d/myapp
+
+            # ── rsyslog ───────────────────────────────────────────────
+            sudo cp /tmp/49-myapp.conf /etc/rsyslog.d/49-myapp.conf
+            sudo systemctl restart rsyslog
+
+            # ── alert script ──────────────────────────────────────────
+            sudo cp /tmp/myapp-alert.sh /usr/local/bin/myapp-alert.sh
+            sudo chmod +x /usr/local/bin/myapp-alert.sh
+
+            # ── cron entry ────────────────────────────────────────────
+            # Add the cron job if it is not already present.
+            # The subshell reads the existing crontab, strips any existing myapp-alert
+            # line, appends the fresh line, and pipes the result back to crontab.
+            CRON_LINE="*/5 * * * * SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }} /usr/local/bin/myapp-alert.sh"
+            ( sudo crontab -l 2>/dev/null | grep -v 'myapp-alert'; echo "$CRON_LINE" ) | sudo crontab -
+
+            echo "All configuration applied successfully."
+
+      # Step 5: Verify the service came up correctly after all changes.
+      # This is the deployment smoke test — if the service is not active,
+      # the workflow fails and the team is notified via GitHub's built-in alerting.
+      - name: Verify service is active
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            systemctl is-active myapp.service \
+              && echo "Service is active. Deployment successful." \
+              || (echo "ERROR: Service is not active after deployment." && exit 1)

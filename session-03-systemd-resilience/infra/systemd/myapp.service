@@ -1,0 +1,68 @@
+# /etc/systemd/system/myapp.service
+#
+# A systemd unit file has three mandatory sections:
+# [Unit]    — what this service is and what it depends on
+# [Service] — how to run it, how to restart it, security constraints
+# [Install] — when this service should start relative to the boot sequence
+
+[Unit]
+Description=My Client Application (RetailEdge Ltd)
+Documentation=https://github.com/your-org/myapp
+# After= means: do not start this service until these targets are reached.
+# network-online.target means the system has a working network connection.
+# Without this, an app that needs network might start and immediately fail.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Run as a dedicated non-root user — never run application services as root.
+# If the application is compromised, the attacker gets only these permissions.
+Type=simple
+User=myappuser
+Group=myappuser
+WorkingDirectory=/opt/myapp
+
+# The command that starts the application.
+# Systemd needs the full absolute path — never rely on $PATH in unit files.
+ExecStart=/opt/myapp/app
+
+# Send a HUP signal when systemctl reload is called.
+# Many apps use SIGHUP to reload configuration without restarting.
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Where to send the application's stdout and stderr output.
+# journal = send directly to journald (the systemd log system).
+# This is the modern way — no log file path needed, logs go to the journal.
+StandardOutput=journal
+StandardError=journal
+
+# SyslogIdentifier is the tag that appears in journal and rsyslog output.
+# Set this to something recognisable — you will filter logs by this name.
+SyslogIdentifier=myapp
+
+# Load environment variables from this file if it exists.
+# The leading dash (-) means: do not error if the file is missing.
+EnvironmentFile=-/etc/myapp/myapp.env
+
+# Restart policy — this is the core of crash recovery.
+# on-failure = restart if the process exits with a non-zero code, or is killed
+# by a signal. Does NOT restart if you run 'systemctl stop' manually.
+Restart=on-failure
+
+# How long to wait before each restart attempt.
+# 10 seconds gives the system time to recover (release ports, flush state)
+# before the app tries to come back up.
+RestartSec=10s
+
+# Rate limiting: if the service restarts more than 5 times in 300 seconds,
+# systemd stops trying and marks the service as 'failed'.
+# This prevents an app in a crash loop from thrashing the server.
+# When this limit is hit, your alerting (Step 6) must catch it.
+StartLimitInterval=300s
+StartLimitBurst=5
+
+[Install]
+# WantedBy=multi-user.target: start this service when the system reaches
+# normal operational state (networking up, no GUI, multi-user login available).
+# This is the correct target for almost all server-side services.
+WantedBy=multi-user.target

@@ -1,0 +1,35 @@
+/var/log/myapp/*.log {
+    # Rotate once per day
+    daily
+
+    # Do not error if no log files match the glob
+    missingok
+
+    # Keep 14 rotated copies (14 days of history)
+    rotate 14
+
+    # Compress rotated files using gzip
+    compress
+
+    # Do not compress the most recently rotated file.
+    # This gives the application time to close its file handle before compression.
+    # Without this, an app still writing to a just-rotated file will write to a compressed file.
+    delaycompress
+
+    # Do not rotate if the log file is empty
+    notifempty
+
+    # Create a new empty log file after rotation with these permissions
+    # 0640 = owner read/write, group read, others none
+    create 0640 myappuser adm
+
+    # Run the postrotate script once for all matched files, not once per file
+    sharedscripts
+
+    # After rotating, signal the application to close and reopen its log file handle.
+    # Without this, the app continues writing to the old (now rotated) file descriptor.
+    # HUP (SIGHUP) is the standard signal for "reload configuration / reopen log files".
+    postrotate
+        systemctl kill -s HUP myapp.service 2>/dev/null || true
+    endscript
+}
