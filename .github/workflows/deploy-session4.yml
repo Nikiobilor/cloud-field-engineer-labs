@@ -50,10 +50,10 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            set -euo pipefail
+            set -e
             sudo mv /tmp/configure-firewall.sh /usr/local/bin/configure-firewall.sh
             sudo chmod +x /usr/local/bin/configure-firewall.sh
-            sudo bash /usr/local/bin/configure-firewall.sh "${{ secrets.OPS_IP }}"
+            sudo /usr/local/bin/configure-firewall.sh "${{ secrets.OPS_IP }}"
             echo "Firewall deployment complete."
 
       # Verify SSH is still accessible post-firewall change.
