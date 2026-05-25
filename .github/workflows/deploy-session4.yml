@@ -53,7 +53,7 @@ jobs:
             set -euo pipefail
             sudo mv /tmp/configure-firewall.sh /usr/local/bin/configure-firewall.sh
             sudo chmod +x /usr/local/bin/configure-firewall.sh
-            sudo /usr/local/bin/configure-firewall.sh "${{ secrets.OPS_IP }}"
+            sudo bash /usr/local/bin/configure-firewall.sh "${{ secrets.OPS_IP }}"
             echo "Firewall deployment complete."
 
       # Verify SSH is still accessible post-firewall change.
