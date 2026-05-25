@@ -1,0 +1,71 @@
+# .github/workflows/deploy-session4.yml
+#
+# Deploys the Session 4 firewall configuration to EC2.
+# Triggered on any push to main that modifies files in session-04-networking/.
+
+name: Deploy Session 4 — Firewall Configuration
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'session-04-networking/**'
+      - '.github/workflows/deploy-session4.yml'
+
+jobs:
+  deploy-firewall:
+    name: Apply firewall config to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      # Pull the repository code onto the Actions runner.
+      # Without this, the runner has no access to our scripts.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Load the SSH private key into the runner's ssh-agent.
+      # Subsequent SSH and SCP commands authenticate without specifying a key file.
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      # Copy the firewall script to /tmp on the server.
+      # SCP cannot sudo — we copy to /tmp first, then move with sudo in the next step.
+      # -o StrictHostKeyChecking=no accepts the host key automatically —
+      # required for non-interactive CI runs (the runner has never seen this host before).
+      - name: Copy firewall script to EC2
+        run: |
+          scp -o StrictHostKeyChecking=no \
+            session-04-networking/scripts/configure-firewall.sh \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/configure-firewall.sh
+
+      # SSH in and apply the firewall configuration.
+      # OPS_IP is stored as a secret — never hardcode an IP in a workflow file.
+      - name: Apply firewall configuration
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            sudo mv /tmp/configure-firewall.sh /usr/local/bin/configure-firewall.sh
+            sudo chmod +x /usr/local/bin/configure-firewall.sh
+            sudo /usr/local/bin/configure-firewall.sh "${{ secrets.OPS_IP }}"
+            echo "Firewall deployment complete."
+
+      # Verify SSH is still accessible post-firewall change.
+      # If this step fails (because the firewall locked out SSH), the workflow
+      # fails and the team is notified immediately via GitHub notifications.
+      - name: Smoke test — verify SSH is still accessible
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Post-deployment SSH confirmation."
+            sudo ufw status verbose
+            echo "Firewall deployment verified."
