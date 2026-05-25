@@ -1,7 +1,7 @@
 
 #!/usr/bin/env bash
 # session-04-networking/scripts/configure-firewall.sh
-#
+##
 # Configures ufw firewall rules for the RetailEdge EC2 instance.
 # This script is IDEMPOTENT — safe to run multiple times.
 # Running it again produces the same result as running it once.
@@ -15,7 +15,7 @@
 # This script is deployed and executed by GitHub Actions on every push
 # to main that modifies files in session-04-networking/.
 
-set -euo pipefail
+set -e
 
 OPS_IP="${1:?Error: OPS_IP argument is required. Usage: configure-firewall.sh OPS_IP}"
 
