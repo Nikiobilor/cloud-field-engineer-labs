@@ -1,0 +1,8 @@
+---
+# Handlers run ONCE at the end of the play, only if notified.
+# If sshd_config changes 3 times in one run, sshd restarts once — not three times.
+
+- name: restart sshd
+  service:
+    name: sshd
+    state: restarted

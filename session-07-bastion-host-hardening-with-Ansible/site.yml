@@ -1,0 +1,14 @@
+---
+# site.yml — RetailEdge Bastion Hardening Playbook
+# Applies SSH hardening, fail2ban, and auditd to the bastion host.
+# Idempotent: running this multiple times produces the same result.
+
+- name: RetailEdge Bastion Host Hardening
+  hosts: bastion
+  become: true        # run all tasks as root (equivalent to sudo)
+  become_method: sudo
+
+  roles:
+    - ssh_hardening   # CIS-aligned SSH daemon configuration
+    - fail2ban        # Brute-force intrusion prevention
+    - auditd          # Privileged command and file integrity auditing

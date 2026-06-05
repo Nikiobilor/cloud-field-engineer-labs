@@ -1,0 +1,36 @@
+---
+- name: Install auditd and audispd plugins
+  apt:
+    name:
+      - auditd
+      - audispd-plugins
+    state: present
+    update_cache: yes
+
+- name: Deploy auditd.conf
+  template:
+    src: auditd.conf.j2
+    dest: /etc/audit/auditd.conf
+    owner: root
+    group: root
+    mode: '0640'
+
+- name: Deploy custom audit rules
+  template:
+    src: audit.rules.j2
+    dest: /etc/audit/rules.d/99-retailedge-hardening.rules
+    owner: root
+    group: root
+    mode: '0640'
+
+- name: Load audit rules immediately (without reboot)
+  command: augenrules --load
+  # augenrules merges all files in /etc/audit/rules.d/ and loads them.
+  # Without this, rules only take effect after a reboot.
+  changed_when: false
+
+- name: Ensure auditd is enabled and running
+  service:
+    name: auditd
+    state: started
+    enabled: yes

@@ -1,0 +1,14 @@
+# /etc/audit/auditd.conf
+# Managed by Ansible — RetailEdge Bastion Hardening
+
+log_file = /var/log/audit/audit.log
+log_format = {{ audit_log_format }}
+max_log_file = {{ audit_log_size }}
+num_logs = {{ audit_num_logs }}
+max_log_file_action = ROTATE
+space_left = 75
+space_left_action = SYSLOG
+admin_space_left = 50
+admin_space_left_action = HALT   # Stop the system rather than lose audit logs (PCI-DSS requirement)
+disk_full_action = HALT
+disk_error_action = SYSLOG

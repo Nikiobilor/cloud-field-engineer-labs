@@ -1,0 +1,10 @@
+---
+# Default variables for SSH hardening role
+# Override these in group_vars or host_vars if needed
+
+ssh_port: 22
+ssh_login_grace_time: 60          # seconds before an unauthenticated connection is dropped
+ssh_max_auth_tries: 4             # failed attempts before connection is dropped
+ssh_client_alive_interval: 300    # send keepalive every 5 minutes
+ssh_client_alive_count_max: 2     # drop after 2 missed keepalives (10 min idle timeout)
+ssh_allow_users: "ubuntu"         # space-separated list of permitted users

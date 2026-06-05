@@ -1,0 +1,4 @@
+---
+audit_log_size: 50              # Max log file size in MB before rotation
+audit_num_logs: 10              # Number of rotated logs to keep
+audit_log_format: RAW           # RAW (parseable) or ENRICHED (human-readable)

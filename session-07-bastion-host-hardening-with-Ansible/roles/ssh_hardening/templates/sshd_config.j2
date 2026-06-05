@@ -1,0 +1,57 @@
+# /etc/ssh/sshd_config
+# Managed by Ansible — RetailEdge Bastion Hardening
+# CIS Ubuntu 22.04 Benchmark — Section 5.2
+
+# ── Network ──────────────────────────────────────────────────────────────────
+Port {{ ssh_port }}
+AddressFamily inet                # IPv4 only — reduces attack surface
+
+# ── Authentication ────────────────────────────────────────────────────────────
+PermitRootLogin no                # CIS 5.2.8 — root must never log in directly
+PasswordAuthentication no         # CIS 5.2.11 — key-based auth only
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+ChallengeResponseAuthentication no
+KerberosAuthentication no
+GSSAPIAuthentication no
+UsePAM yes                        # Required for session management (PAM handles limits)
+
+# ── Session limits ───────────────────────────────────────────────────────────
+LoginGraceTime {{ ssh_login_grace_time }}   # CIS 5.2.16
+MaxAuthTries {{ ssh_max_auth_tries }}       # CIS 5.2.7
+MaxSessions 4                     # Limit concurrent sessions per connection
+MaxStartups 10:30:60              # CIS 5.2.17 — throttle unauthenticated connections
+
+# ── Idle timeout ──────────────────────────────────────────────────────────────
+ClientAliveInterval {{ ssh_client_alive_interval }}   # CIS 5.2.19
+ClientAliveCountMax {{ ssh_client_alive_count_max }}
+
+# ── Allowed users ─────────────────────────────────────────────────────────────
+AllowUsers {{ ssh_allow_users }}   # Explicit allowlist — deny everyone else by default
+
+# ── Cryptographic algorithms ──────────────────────────────────────────────────
+# Only modern, audited algorithms. Excludes: arcfour, des, 3des,
+# hmac-sha1, diffie-hellman-group1/14, ecdh-sha2-nistp* (weak curves)
+Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes128-gcm@openssh.com
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+KexAlgorithms curve25519-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
+
+# ── Host keys ─────────────────────────────────────────────────────────────────
+HostKey /etc/ssh/ssh_host_ed25519_key    # Preferred: modern, fast, small
+HostKey /etc/ssh/ssh_host_rsa_key        # Legacy clients only
+
+# ── Forwarding ────────────────────────────────────────────────────────────────
+AllowAgentForwarding no           # CIS 5.2.12 — disable unless explicitly needed
+AllowTcpForwarding no             # CIS 5.2.13
+X11Forwarding no                  # CIS 5.2.6 — no GUI tunnels
+PermitTunnel no
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+LogLevel VERBOSE                  # CIS 5.2.5 — logs key fingerprints on login
+SyslogFacility AUTH
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+PrintMotd no
+PrintLastLog yes
+Banner /etc/ssh/banner            # Display warning banner before authentication
+Subsystem sftp /usr/lib/openssh/sftp-server

@@ -1,0 +1,58 @@
+# /etc/audit/rules.d/99-retailedge-hardening.rules
+# Managed by Ansible — RetailEdge Bastion Hardening
+# CIS Ubuntu 22.04 Benchmark — Section 4 (Logging and Auditing)
+
+# ── Rule format ───────────────────────────────────────────────────────────────
+# -a always,exit   : record on syscall exit (after execution)
+# -F arch=b64      : 64-bit architecture
+# -S               : syscall name or number
+# -k               : key tag for searching with ausearch -k <key>
+
+# ── Session and login events ──────────────────────────────────────────────────
+# Watch for logins, logouts, and session changes — required by CIS 4.1.8
+-w /var/log/lastlog -p wa -k logins
+-w /var/run/faillock -p wa -k logins
+
+# ── Authentication file integrity ─────────────────────────────────────────────
+# Any write or attribute change to these files is a potential account manipulation
+-w /etc/passwd -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/group -p wa -k identity
+-w /etc/gshadow -p wa -k identity
+-w /etc/opasswd -p wa -k identity
+
+# ── SSH configuration integrity ───────────────────────────────────────────────
+# Alert if anyone changes the SSH config after our playbook runs
+-w /etc/ssh/sshd_config -p wa -k sshd_config
+-w /etc/ssh/ -p wa -k sshd_config
+
+# ── Sudo and privilege escalation ────────────────────────────────────────────
+-w /etc/sudoers -p wa -k privilege_escalation
+-w /etc/sudoers.d/ -p wa -k privilege_escalation
+-a always,exit -F arch=b64 -C euid!=uid -F auid!=unset -S execve -k privilege_escalation
+
+# ── Privileged command execution ──────────────────────────────────────────────
+# Any execution of setuid/setgid binaries — CIS 4.1.12
+-a always,exit -F arch=b64 -F euid=0 -S execve -k privileged_command
+-a always,exit -F arch=b32 -F euid=0 -S execve -k privileged_command
+
+# ── Network configuration changes ─────────────────────────────────────────────
+-a always,exit -F arch=b64 -S sethostname -S setdomainname -k system-locale
+-w /etc/hosts -p wa -k system-locale
+-w /etc/network/ -p wa -k system-locale
+
+# ── Kernel module loading/unloading ───────────────────────────────────────────
+-w /sbin/insmod -p x -k modules
+-w /sbin/rmmod -p x -k modules
+-w /sbin/modprobe -p x -k modules
+-a always,exit -F arch=b64 -S init_module -S delete_module -k modules
+
+# ── File deletion ─────────────────────────────────────────────────────────────
+-a always,exit -F arch=b64 -S unlink -S unlinkat -S rename -S renameat -F auid>=1000 -F auid!=unset -k delete
+ # CIS 4.1.13
+
+# ── Make the audit configuration immutable ────────────────────────────────────
+# This MUST be the last line. It prevents rule changes until next reboot.
+# An attacker cannot add rules to hide their tracks without rebooting.
+# -e 2: lock mode (immutable)
+-e 2

@@ -1,0 +1,33 @@
+---
+# roles/ssh_hardening/tasks/main.yml
+
+- name: Deploy hardened sshd_config from template
+  template:
+    src: sshd_config.j2          # Jinja2 template rendered with our variables
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: '0600'                  # sshd will refuse to start if this is world-readable
+    backup: yes                   # Keeps a timestamped backup of the previous config
+  notify: restart sshd            # Trigger the handler — only if this task changes anything
+
+- name: Deploy SSH warning banner
+  template:
+    src: ssh_banner.j2
+    dest: /etc/ssh/banner
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Validate sshd config before restarting
+  command: sshd -t
+  # sshd -t: test mode — parses the config and exits.
+  # If this fails, Ansible stops here. The handler never fires.
+  # This prevents deploying a broken config that locks you out.
+  changed_when: false             # This command never "changes" anything — suppress false positives
+
+- name: Ensure sshd is enabled and running
+  service:
+    name: sshd
+    state: started
+    enabled: yes

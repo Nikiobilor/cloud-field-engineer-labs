@@ -1,0 +1,23 @@
+# /etc/fail2ban/jail.local
+# Managed by Ansible — RetailEdge Bastion Hardening
+# jail.local overrides jail.conf — never edit jail.conf directly;
+# package updates would overwrite your changes.
+
+[DEFAULT]
+bantime  = {{ fail2ban_bantime }}
+findtime = {{ fail2ban_findtime }}
+maxretry = {{ fail2ban_maxretry }}
+ignoreip = {{ fail2ban_ignoreip }}
+banaction = ufw
+backend = systemd
+
+[sshd]
+enabled  = true
+port     = ssh
+filter   = sshd
+logpath  = %(sshd_log)s
+maxretry = {{ fail2ban_maxretry }}
+
+# Note: on Ubuntu 22.04 with sshd logging to the journal,
+# backend = systemd is required. If you see "no such file" errors
+# for auth.log, this is why.
