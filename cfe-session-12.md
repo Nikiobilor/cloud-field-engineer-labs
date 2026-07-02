@@ -4,7 +4,7 @@
 
 ---
 
-> **Standalone session.** This session provisions everything it needs from scratch by default. If you deliberately left a Session 11 instance running with MicroStack already installed, an optional shortcut is marked below — but the default path assumes nothing is inherited.
+> **Standalone session.** This session provisions everything it needs from scratch by default. If you deliberately left a Session 11 instance running with MicroStack already installed, an optional shortcut is marked below, but the default path assumes nothing is inherited.
 >
 > **Time split suggestion:**
 > **Day 1:** Blocks 1, 2, and 3 — Infrastructure + Python Slack alerting (~2 hours)
@@ -19,7 +19,7 @@
 **Priority:** High
 **Subject:** Alerting for downed services + persistent storage evaluation
 
-> "Our health check script logs to a file but nobody actually looks at it. We need it to send a Slack message immediately when a service goes down. Separately, our storage lead wants to evaluate Ceph before we commit to a storage decision — can you deploy a single-node Ceph cluster and demonstrate persistent block storage? We'd also like to see a persistent volume attached to a VM in our OpenStack PoC, since right now if the VM is deleted, the data is gone."
+> "Our health check script logs to a file but nobody actually looks at it. We need it to send a Slack message immediately when a service goes down. Separately, our storage lead wants to evaluate Ceph before we commit to a storage decision, can you deploy a single-node Ceph cluster and demonstrate persistent block storage? We'd also like to see a persistent volume attached to a VM in our OpenStack PoC, since right now if the VM is deleted, the data is gone."
 
 **What this session delivers:**
 - A health-check script that sends real Slack alerts when a service is DOWN
@@ -33,9 +33,9 @@
 
 ### What this session builds toward
 
-In the previous session you wrote a remote health-check script using paramiko. It detects problems correctly but only writes to a log file — silent failures nobody sees. Today you add real Slack alerting using the `requests` library.
+In the previous session you wrote a remote health-check script using paramiko. It detects problems correctly but only writes to a log file, silent failures nobody sees. Today you add real Slack alerting using the `requests` library.
 
-This introduces a critical concept: **calling external APIs from Python**. The Slack webhook is just an HTTP POST request with JSON data. The same pattern — `requests.post(url, json=data)` — is how you will call the AWS API, the OpenStack API, the Kubernetes API, and every other cloud service API you will encounter as a Junior CFE. Learning it through Slack is the easiest possible entry point.
+This introduces a critical concept: **calling external APIs from Python**. The Slack webhook is just an HTTP POST request with JSON data. The same pattern, `requests.post(url, json=data)` — is how you will call the AWS API, the OpenStack API, the Kubernetes API, and every other cloud service API you will encounter as a Junior CFE. Learning it through Slack is the easiest possible entry point.
 
 **New Python concepts this session:**
 - `requests` library for HTTP API calls

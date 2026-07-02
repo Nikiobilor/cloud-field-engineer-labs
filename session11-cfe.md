@@ -4,7 +4,7 @@
 
 ---
 
-> **Standalone session.** This session provisions everything it needs from scratch. It does not require anything left running from Session 10 or earlier. If you still have a Session 10 instance running, you may terminate it - it is not used here.
+> **Standalone session.** This session provisions everything it needs from scratch. It does not require anything left running from Session 10 or earlier. If you still have a Session 10 instance running, you may terminate it, it is not used here.
 >
 > **Time split suggestion:**
 > **Day 1:** Blocks 1, 2, and 3 — Infrastructure + Python SSH script (~2 hours)
@@ -156,7 +156,7 @@ docker inspect server-03 | grep '"IPAddress"' | tail -1
 ```bash
 ssh ubuntu@<server-01-ip>
 # Password: password123
-systemctl status nginx
+service nginx status
 exit
 ```
 
@@ -179,10 +179,8 @@ exit
 
 ```bash
 cd ~/cfe-labs/session-11
-pip3 install paramiko
+sudo apt install python3-paramiko -y
 ```
-
-`pip3` is Python's package manager - it downloads and installs libraries from the internet. `paramiko` implements SSH, letting your script connect to remote servers and run commands exactly like you do manually.
 
 **Step 2 — Write the remote health check script**
 
@@ -237,9 +235,9 @@ def check_remote_service(host, username, password, service_name):
     """Check if a service is active on a remote server."""
     output = ssh_run_command(
         host, username, password,
-        f"systemctl is-active {service_name}"
+        f"service {service_name} status"
     )
-    return output == "active"
+    return "is running" in output 
 
 
 def check_remote_disk(host, username, password, path="/"):
@@ -400,25 +398,25 @@ git push origin main
 > **This is your first real OpenStack hands-on.** Before any commands, here is what you're actually working with.
 
 **What is OpenStack, in one sentence?**
-OpenStack is a collection of separate services that, together, let you do what AWS does — create VMs, give them networking, attach storage — except running on infrastructure you control instead of Amazon's. Each "service" below has one specific job, the same way EC2, VPC, and IAM are each separate AWS services that work together.
+OpenStack is a collection of separate services that, together, let you do what AWS does, create VMs, give them networking, attach storage, except running on infrastructure you control instead of Amazon's. Each "service" below has one specific job, the same way EC2, VPC, and IAM are each separate AWS services that work together.
 
 **What is MicroStack?**
-A normal OpenStack deployment spreads these services across many physical or virtual machines. MicroStack is Canonical's version that squeezes the entire thing onto a **single machine** — built specifically so you can learn and test real OpenStack without needing a whole data centre. This runs on the same t3.large instance you provisioned in Block 2.
+A normal OpenStack deployment spreads these services across many physical or virtual machines. MicroStack is Canonical's version that squeezes the entire thing onto a **single machine**, built specifically so you can learn and test real OpenStack without needing a whole data centre. This runs on the same t3.large instance you provisioned in Block 2.
 
 **The OpenStack services you will meet in this block, explained before you use them:**
 
 | Service | What it actually does | The AWS equivalent you already know |
 |---|---|---|
-| **Nova** | Creates and manages VMs — the actual "computer" that runs | EC2 |
+| **Nova** | Creates and manages VMs,the actual "computer" that runs | EC2 |
 | **Glance** | Stores operating system images, so Nova has something to install onto a new VM | AMI (Amazon Machine Image) |
-| **Neutron** | Handles networking — IP addresses, routing, floating IPs | VPC + Elastic IP |
+| **Neutron** | Handles networking, IP addresses, routing, floating IPs | VPC + Elastic IP |
 | **Keystone** | Handles login and permissions — confirms who you are before letting you do anything | IAM |
 | **Horizon** | A web dashboard for clicking through all of the above instead of using the command line | AWS Console |
 
-You will use Nova, Glance, and Neutron directly in the steps below. Keystone works silently in the background every time you run an `openstack` command — it's what checks you're allowed to do that action.
+You will use Nova, Glance, and Neutron directly in the steps below. Keystone works silently in the background every time you run an `openstack` command, it's what checks you're allowed to do that action.
 
 **Two more terms you'll see in the commands:**
-- **Flavor** — OpenStack's name for an instance size (CPU/RAM combination). `m1.tiny` is the smallest available flavor — directly equivalent to AWS's `t3.micro`.
+- **Flavor** — OpenStack's name for an instance size (CPU/RAM combination). `m1.tiny` is the smallest available flavor, directly equivalent to AWS's `t3.micro`.
 - **Floating IP** — a public IP address that can be attached to a VM so it's reachable from outside OpenStack. Equivalent to an AWS Elastic IP.
 
 **Step 1 — Install MicroStack**
@@ -434,7 +432,7 @@ sudo snap logs microstack -f
 
 **Step 2 — Verify all OpenStack services are running**
 
-This command asks Keystone (the identity service) to list every service it knows about and confirm they're all registered and reachable — a quick sanity check before you try to use any of them.
+This command asks Keystone (the identity service) to list every service it knows about and confirm they're all registered and reachable, a quick sanity check before you try to use any of them.
 
 ```bash
 sudo microstack.openstack service list
@@ -442,7 +440,7 @@ sudo microstack.openstack service list
 
 **Step 3 — Upload an image to Glance**
 
-Before Nova can create a VM, it needs an actual operating system to install onto it — Glance is where that operating system file lives. This step downloads a real Ubuntu 22.04 disk image directly from Canonical, then uploads it into Glance so OpenStack has something to install when you launch a VM in Step 4.
+Before Nova can create a VM, it needs an actual operating system to install onto it, Glance is where that operating system file lives. This step downloads a real Ubuntu 22.04 disk image directly from Canonical, then uploads it into Glance so OpenStack has something to install when you launch a VM in Step 4.
 
 ```bash
 wget https://cloud-images.ubuntu.com/minimal/releases/jammy/release/ubuntu-22.04-minimal-cloudimg-amd64.img
@@ -452,7 +450,7 @@ sudo microstack.openstack image create \
   --disk-format qcow2 \
   --container-format bare \
   --public \
-  "Ubuntu 22.04 Minimal"
+  "Ubuntu-22.04-Minimal"
 ```
 
 - `--disk-format qcow2` — tells Glance what file format the image is in (qcow2 is a common virtual disk format)
@@ -462,26 +460,28 @@ sudo microstack.openstack image create \
 ```bash
 sudo microstack.openstack image list
 ```
-This just confirms the image is now stored in Glance and ready to use — the same idea as checking `aws ec2 describe-images` to confirm an AMI exists before launching from it.
+This just confirms the image is now stored in Glance and ready to use, the same idea as checking `aws ec2 describe-images` to confirm an AMI exists before launching from it.
 
 **Step 4 — Launch your first VM inside OpenStack**
 
-First, OpenStack needs a copy of your public SSH key so the new VM will trust it — same purpose as the EC2 key pair you already use, just registered inside OpenStack's own system this time:
+First, create a keypair
 
-```bash
-sudo microstack.openstack keypair create \
-  --public-key ~/.ssh/canonical_lab_key.pub \
-  retailedge-key
+ssh-keygen -t ed25519 -f ~/.ssh/retailedge_key
+sudo microstack.openstack keypair create --public-key ~/.ssh/retailedge_key.pub retailedge-key
+
 ```
 
-Now create the actual VM. This is the OpenStack equivalent of `aws ec2 run-instances` — you're telling Nova what size (`flavor`), what operating system (`image`, from Glance), and which SSH key to trust:
+Now create the actual VM. This is the OpenStack equivalent of `aws ec2 run-instances`, you're telling Nova what size (`flavor`), what operating system (`image`, from Glance), and which SSH key to trust:
+
+Run this command to find the network-name 
+NB: DO not use the external network
+sudo microstack.openstack network list
+
+Create the flavour with this command
+sudo microstack.openstack flavor create --ram 2048 --disk 10 --vcpus 1 m1.custom
 
 ```bash
-sudo microstack.openstack server create \
-  --flavor m1.tiny \
-  --image "Ubuntu 22.04 Minimal" \
-  --key-name retailedge-key \
-  retailedge-web-01
+sudo microstack.openstack server create --flavor m1.custom --image "Ubuntu-22.04-Minimal" --key-name retailedge-key --network test --config-drive True retailedge-web-01
 
 sudo microstack.openstack server list
 # Status goes BUILD → ACTIVE. Wait until ACTIVE.
@@ -489,7 +489,7 @@ sudo microstack.openstack server list
 
 **Step 5 — Assign a floating IP and connect**
 
-Right now your VM exists, but only with an internal IP address that's only reachable from inside OpenStack's own network — not from your laptop or the internet. A floating IP is a public-facing address you attach on top, the same role an AWS Elastic IP plays for an EC2 instance.
+Right now your VM exists, but only with an internal IP address that's only reachable from inside OpenStack's own network, not from your laptop or the internet. A floating IP is a public-facing address you attach on top, the same role an AWS Elastic IP plays for an EC2 instance.
 
 ```bash
 sudo microstack.openstack floating ip create external
@@ -516,7 +516,7 @@ hostname
 uname -a
 exit
 ```
-You're now SSHing into a virtual machine that exists entirely inside MicroStack — not your EC2 instance itself, but a VM running inside it.
+You're now SSHing into a virtual machine that exists entirely inside MicroStack, not your EC2 instance itself, but a VM running inside it.
 
 **Step 6 — Document what you observed**
 
