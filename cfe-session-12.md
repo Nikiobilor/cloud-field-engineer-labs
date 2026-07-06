@@ -100,8 +100,10 @@ You need a Slack workspace to send alerts to. If you do not have one, create a f
 7. Select a channel (create #retailedge-alerts if it doesn't exist)
 8. Click "Allow"
 9. Copy the Webhook URL — it looks like:
-   https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXX
+   https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 ```
+
+ Session 11: Python SSH health monitor + MicroStack PoC for RetailEdge
 
 **Test the webhook manually from your EC2 instance:**
 
