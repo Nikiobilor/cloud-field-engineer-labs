@@ -465,7 +465,7 @@ This just confirms the image is now stored in Glance and ready to use, the same 
 **Step 4 — Launch your first VM inside OpenStack**
 
 First, create a keypair
-
+```bash
 ssh-keygen -t ed25519 -f ~/.ssh/retailedge_key
 sudo microstack.openstack keypair create --public-key ~/.ssh/retailedge_key.pub retailedge-key
 
@@ -475,11 +475,13 @@ Now create the actual VM. This is the OpenStack equivalent of `aws ec2 run-insta
 
 Run this command to find the network-name 
 NB: DO not use the external network
+```bash
 sudo microstack.openstack network list
-
+```
 Create the flavour with this command
+```bash
 sudo microstack.openstack flavor create --ram 2048 --disk 10 --vcpus 1 m1.custom
-
+```
 ```bash
 sudo microstack.openstack server create --flavor m1.custom --image "Ubuntu-22.04-Minimal" --key-name retailedge-key --network test --config-drive True retailedge-web-01
 
@@ -509,7 +511,7 @@ sudo microstack.openstack server show retailedge-web-01
 This shows full details of the VM, including confirming the floating IP is now attached.
 
 ```bash
-ssh -i ~/.ssh/canonical_lab_key ubuntu@<floating-ip>
+ssh -i ~/.ssh/retailedge-key ubuntu@<floating-ip>
 
 # Once inside the OpenStack VM:
 hostname
@@ -518,6 +520,15 @@ exit
 ```
 You're now SSHing into a virtual machine that exists entirely inside MicroStack, not your EC2 instance itself, but a VM running inside it.
 
+
+To view the openstack console in a web browser
+hostname -I
+https://<public_ip>
+
+To get password
+sudo snap get microstack config.credentials.keystone-password
+Username : admin
+Password : 
 **Step 6 — Document what you observed**
 
 ```bash

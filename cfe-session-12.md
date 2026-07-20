@@ -482,7 +482,7 @@ sudo microstack.openstack server add floating ip retailedge-web-01 <floating-ip>
 ```
 
 ### Part B — Attach a persistent Cinder volume
-
+========================================
 ```bash
 # Create a 5GB Cinder volume
 sudo microstack.openstack volume create \
@@ -501,7 +501,7 @@ sudo microstack.openstack volume list
 # Status should now show "in-use"
 
 # SSH into the MicroStack VM
-ssh -i ~/.ssh/canonical_lab_key ubuntu@<floating-ip>
+ssh -i ~/.ssh/retailedge-key ubuntu@<floating-ip>
 
 lsblk
 # You should see a new disk (likely /dev/vdb) — this is the Cinder volume

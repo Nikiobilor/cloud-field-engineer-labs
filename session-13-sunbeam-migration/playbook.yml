@@ -1,0 +1,38 @@
+---
+- name: Prepare host for Sunbeam
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Ensure required kernel modules are loaded
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - br_netfilter
+        - overlay
+
+    - name: Persist kernel modules across reboot
+      copy:
+        dest: /etc/modules-load.d/sunbeam-lab.conf
+        content: |
+          br_netfilter
+          overlay
+
+    - name: Install snapd prerequisites
+      apt:
+        name:
+          - snapd
+          - jq
+        state: present
+        update_cache: true
+
+    - name: Install Sunbeam (openstack snap)
+      command: snap install openstack --channel=2024.1/stable
+      args:
+        creates: /snap/openstack/current
+
+    - name: Install MicroCeph
+      command: snap install microceph
+      args:
+        creates: /snap/microceph/current
